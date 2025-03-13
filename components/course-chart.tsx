@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Star, Clock, Heart } from "lucide-react";
-import { useFavorites } from "@/hooks/favorite.ts";
+import { useFavorites } from "@/hooks/favorite";
 import { Button } from "@/components/ui/button";
 
 Chart.register(...registerables);
