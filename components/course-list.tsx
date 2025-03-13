@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Course } from "@/types/course";
-import { useFavorites } from "../hooks/favorite";
+import { useFavorites } from "../hooks/usefavorite";
 import { Button } from "@/components/ui/button";
 import {
   Table,
