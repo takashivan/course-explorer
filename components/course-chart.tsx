@@ -1,38 +1,48 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
-import { Chart, registerables } from "chart.js"
-import type { Course } from "@/types/course"
+import { useEffect, useRef, useState } from "react";
+import { Chart, registerables } from "chart.js";
+import type { Course } from "@/types/course";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Star, Clock, Heart } from "lucide-react";
+import { useFavorites } from "@/hooks/favorite";
+import { Button } from "@/components/ui/button";
 
-Chart.register(...registerables)
+Chart.register(...registerables);
 
 interface CourseChartProps {
-  courses: Course[]
+  courses: Course[];
 }
 
 export default function CourseChart({ courses }: CourseChartProps) {
-  const chartRef = useRef<HTMLCanvasElement>(null)
-  const chartInstance = useRef<Chart | null>(null)
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const chartInstance = useRef<Chart | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   useEffect(() => {
-    if (!chartRef.current) return
+    if (!chartRef.current) return;
 
     // 既存のチャートを破棄
     if (chartInstance.current) {
-      chartInstance.current.destroy()
+      chartInstance.current.destroy();
     }
 
-    const ctx = chartRef.current.getContext("2d")
-    if (!ctx) return
+    const ctx = chartRef.current.getContext("2d");
+    if (!ctx) return;
 
     // データポイントの準備
     const data = courses.map((course) => ({
       x: course.workload,
       y: course.rating,
-      id: course.id,
-      name: course.name,
-      instructor: course.instructor,
-    }))
+      course: course, // 講座の全データを保持
+    }));
 
     // チャートの作成
     chartInstance.current = new Chart(ctx, {
@@ -57,14 +67,14 @@ export default function CourseChart({ courses }: CourseChartProps) {
           x: {
             title: {
               display: true,
-              text: "作業量 (低 → 高)",
+              text: "Workload(0 is the best)",
               font: {
                 size: 14,
                 weight: "bold",
               },
             },
             min: 1,
-            max: 5,
+            max: 100,
             ticks: {
               stepSize: 1,
             },
@@ -72,87 +82,142 @@ export default function CourseChart({ courses }: CourseChartProps) {
           y: {
             title: {
               display: true,
-              text: "評価 (低 → 高)",
+              text: "Rating(100 is the best)",
               font: {
                 size: 14,
                 weight: "bold",
               },
             },
             min: 1,
-            max: 5,
+            max: 100,
             ticks: {
               stepSize: 1,
             },
           },
         },
+        onClick: (event, elements) => {
+          if (elements.length > 0) {
+            const dataIndex = elements[0].index;
+            const courseData = data[dataIndex].course;
+            setSelectedCourse(courseData);
+          }
+        },
         plugins: {
           tooltip: {
             callbacks: {
               label: (context) => {
-                const point = context.raw as any
+                const point = context.raw as any;
                 return [
-                  `ID: ${point.id}`,
-                  `講座名: ${point.name}`,
-                  `教員: ${point.instructor}`,
+                  `講座名: ${point.course.name}`,
+                  `教員: ${point.course.instructor}`,
                   `評価: ${point.y}`,
                   `作業量: ${point.x}`,
-                ]
+                ];
               },
             },
           },
           legend: {
             display: false,
           },
-          annotation: {
-            annotations: {
-              xLine: {
-                type: "line",
-                xMin: 3,
-                xMax: 3,
-                borderColor: "rgba(0, 0, 0, 0.3)",
-                borderWidth: 1,
-                borderDash: [5, 5],
-              },
-              yLine: {
-                type: "line",
-                yMin: 3,
-                yMax: 3,
-                borderColor: "rgba(0, 0, 0, 0.3)",
-                borderWidth: 1,
-                borderDash: [5, 5],
-              },
-            },
-          },
         },
       },
-    })
+    });
 
     // クリーンアップ関数
     return () => {
       if (chartInstance.current) {
-        chartInstance.current.destroy()
+        chartInstance.current.destroy();
       }
-    }
-  }, [courses])
+    };
+  }, [courses]);
 
   return (
-    <div className="w-full h-80">
-      <canvas ref={chartRef}></canvas>
-      <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
-        <div className="bg-gray-100 p-2 rounded">
-          <strong>右上:</strong> 高評価・高作業量
-        </div>
-        <div className="bg-gray-100 p-2 rounded">
-          <strong>右下:</strong> 低評価・高作業量
-        </div>
-        <div className="bg-gray-100 p-2 rounded">
-          <strong>左上:</strong> 高評価・低作業量
-        </div>
-        <div className="bg-gray-100 p-2 rounded">
-          <strong>左下:</strong> 低評価・低作業量
-        </div>
+    <>
+      <div className="w-full h-80">
+        <canvas ref={chartRef}></canvas>
       </div>
-    </div>
-  )
-}
 
+      <Dialog
+        open={!!selectedCourse}
+        onOpenChange={() => setSelectedCourse(null)}>
+        {selectedCourse && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>{selectedCourse.name}</DialogTitle>
+                  <DialogDescription>
+                    {selectedCourse.id} - {selectedCourse.department}
+                  </DialogDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => toggleFavorite(selectedCourse.id)}>
+                  <Heart
+                    className={`w-5 h-5 ${
+                      isFavorite(selectedCourse.id)
+                        ? "text-red-500 fill-red-500"
+                        : "text-gray-500"
+                    }`}
+                  />
+                </Button>
+              </div>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">教員</p>
+                  <p className="text-sm">{selectedCourse.instructor}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">学期</p>
+                  <p className="text-sm">{selectedCourse.term}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">曜日</p>
+                  <p className="text-sm">{selectedCourse.days}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">時間</p>
+                  <p className="text-sm">{selectedCourse.time}</p>
+                </div>
+              </div>
+
+              <div className="flex space-x-4">
+                <div className="flex-1 bg-gray-100 p-3 rounded-md text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <Star className="w-5 h-5 text-yellow-500 mr-1" />
+                    <span className="font-bold text-lg">
+                      {selectedCourse.rating.toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">評価</p>
+                </div>
+
+                <div className="flex-1 bg-gray-100 p-3 rounded-md text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <Clock className="w-5 h-5 text-blue-500 mr-1" />
+                    <span className="font-bold text-lg">
+                      {selectedCourse.workload.toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">作業量</p>
+                </div>
+              </div>
+
+              {selectedCourse.japaneseComments && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">コメント</p>
+                  <div className="bg-gray-50 p-3 rounded-md text-sm">
+                    {selectedCourse.japaneseComments}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+    </>
+  );
+}

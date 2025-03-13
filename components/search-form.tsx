@@ -1,45 +1,59 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { getDepartments, getTerms } from "@/lib/data"
-import type { Course } from "@/types/course"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import { getDepartments, getTerms } from "@/lib/data";
+import type { Course } from "@/types/course";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface SearchFormProps {
-  onSearch: (params: any) => void
-  courses: Course[]
+  onSearch: (params: any) => void;
+  courses: Course[];
 }
 
 export default function SearchForm({ onSearch, courses }: SearchFormProps) {
-  const [query, setQuery] = useState("")
-  const [department, setDepartment] = useState("")
-  const [term, setTerm] = useState("")
-  const [departments, setDepartments] = useState<string[]>([])
-  const [terms, setTerms] = useState<string[]>([])
+  const [query, setQuery] = useState("");
+  const [department, setDepartment] = useState("");
+  const [term, setTerm] = useState("");
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [terms, setTerms] = useState<string[]>([]);
 
   useEffect(() => {
     if (courses.length > 0) {
-      setDepartments(getDepartments(courses))
-      setTerms(getTerms(courses))
+      setDepartments(getDepartments(courses));
+      setTerms(getTerms(courses));
     }
-  }, [courses])
+  }, [courses]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSearch({ query, department, term })
-  }
+    e.preventDefault();
+
+    // "all"が選択された場合は、そのフィルターを無視
+    const searchParams = {
+      query,
+      department: department === "all" ? "" : department,
+      term: term === "all" ? "" : term,
+    };
+
+    onSearch(searchParams);
+  };
 
   const handleReset = () => {
-    setQuery("")
-    setDepartment("")
-    setTerm("")
-    onSearch({})
-  }
+    setQuery("");
+    setDepartment("");
+    setTerm("");
+    onSearch({});
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,6 +113,5 @@ export default function SearchForm({ onSearch, courses }: SearchFormProps) {
         </Button>
       </div>
     </form>
-  )
+  );
 }
-
